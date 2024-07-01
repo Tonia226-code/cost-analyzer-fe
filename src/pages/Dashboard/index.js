@@ -1,5 +1,5 @@
-import React from "react";
-// import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import logo from "../../assets/Logo.svg";
 import search from "../../assets/Search.svg";
 import caret from "../../assets/Chevron_Down.svg";
@@ -9,14 +9,52 @@ import star_checked from "../../assets/Star_checked.svg";
 import star_unchecked from "../../assets/Star_unchecked.svg";
 import bell from "../../assets/Notification_Bell.svg";
 import snowflake from "../../assets/Snowflake_Logo.svg";
+import { getProcesses } from "../../api";
 
 const Dashboard = () => {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
+  const [processes, setProcesses] = useState([]);
+
+  useEffect(() => {
+    try {
+      getProcesses()
+        .then((res) => {
+          const { error, data } = res;
+          if (error) {
+            console.log("An error has occured");
+          } else {
+            setProcesses(data);
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    } catch (error) {
+      console.log(error);
+    }
+  }, []);
+
+  const getStatusColor = (status, requireTextColor = false) => {
+    if (status === "High") {
+      return requireTextColor ? "text-yellow-100" : "bg-yellow-100";
+    } else if (status === "Normal") {
+      return requireTextColor ? "text-green-100" : "bg-green-100";
+    } else if (status === "Critical") {
+      return requireTextColor ? "text-red-100" : "bg-red-100";
+    }
+  };
+
+  const getTop10Costs = () => {
+    return processes.sort((a, b) => b.cost - a.cost).slice(0, 10);
+  };
 
   return (
     <div className="text-white-200">
       <div className="bg-blue-500 flex justify-between px-8 py-2 items-center">
-        <div className="flex gap-2.5 items-center">
+        <div
+          className="flex gap-2.5 items-center cursor-pointer"
+          onClick={() => navigate("/")}
+        >
           <img className="w-[46px]" src={logo} alt="Logo" />
           <div className="font-semibold text-[28px]">CloudCostIQ</div>
         </div>
@@ -109,24 +147,33 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="w-full mt-2">
-                <div className="bg-blue-270 text-[14px] flex w-full items-center rounded-lg">
-                  <div className="w-[45%] py-2.5 pl-4 mt-2">
-                    OXYGEN mc-sendsms
-                  </div>
-                  <div className="w-[20%]">807.44 GB</div>
-                  <div className="w-[15%]">$1,614.88</div>
-                  <div className="w-[15%]">
-                    <div className="flex gap-2 items-center border border-grey-300 rounded-lg px-3 py-1 w-[80%] text-[12px]">
-                      <div className="w-2 h-2 bg-yellow-100 rounded-full"></div>
-                      <div>High</div>
+              {processes.map((process) => (
+                <div className="w-full mt-2" key={process.name}>
+                  <div className="bg-blue-270 text-[14px] flex w-full items-center rounded-lg">
+                    <div className="w-[45%] py-2.5 pl-4 mt-2">
+                      {process.name}
+                    </div>
+                    <div className="w-[20%]">{process.usage}GB</div>
+                    <div className="w-[15%]">${process.cost}</div>
+                    <div className="w-[15%]">
+                      <div className="flex gap-2 items-center border border-grey-300 rounded-lg px-3 py-1 w-[80%] text-[12px]">
+                        <div
+                          className={`w-2 h-2 rounded-full ${getStatusColor(
+                            process.status
+                          )}`}
+                        ></div>
+                        <div>{process.status}</div>
+                      </div>
+                    </div>
+                    <div className="w-[5%]">
+                      <img
+                        src={process.watchlist ? star_checked : star_unchecked}
+                        alt=""
+                      />
                     </div>
                   </div>
-                  <div className="w-[5%]">
-                    <img src={star_unchecked} alt="" />
-                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -187,20 +234,24 @@ const Dashboard = () => {
               <div className="w-[20%] py-2">Status</div>
             </div>
 
-            <div className="w-full">
-              <div className="bg-grey-250 bg-opacity-20 text-[12px] flex w-full items-center border-b border-grey-300">
-                <div className="w-[55%] py-2 pl-4">
-                  <div className="">OXYGEN mc-sendsms</div>
-                  <div className="text-[10px] mt-0.5 text-grey-250">
-                    807.44 GB
+            {getTop10Costs().map((item) => (
+              <div className="w-full" key={item.name}>
+                <div className="bg-grey-250 bg-opacity-20 text-[12px] flex w-full items-center border-b border-grey-300">
+                  <div className="w-[55%] py-2 pl-4">
+                    <div className="">{item.name}</div>
+                    <div className="text-[10px] mt-0.5 text-grey-250">
+                      {item.usage}GB
+                    </div>
+                  </div>
+                  <div className="w-[25%]">${item.cost}</div>
+                  <div className="w-[20%]">
+                    <div className={`${getStatusColor(item.status, true)}`}>
+                      {item.status}
+                    </div>
                   </div>
                 </div>
-                <div className="w-[25%]">$1,614.88</div>
-                <div className="w-[20%]">
-                  <div className="text-red-100">Critical</div>
-                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
